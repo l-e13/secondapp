@@ -1,63 +1,70 @@
 import streamlit as st
 import pandas as pd
 
-# Function to fill missing values for each record id
+# Function to read data and fill missing values
+def read_data():
+    # Replace with your data loading logic
+    data = pd.read_excel("PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx")
+    return data
+
+# Function to autofill missing values by record_id
 def autofill(df, columns):
     for column in columns:
         df[column] = df.groupby('record_id')[column].ffill().bfill()
     return df
 
-# Function to count non-null observations for each variable at each timepoint
-def longitudinal_filter(df, timepoint_col, variables):
-    # Assuming timepoint_col is a column in your dataset that denotes the timepoint
-    grouped = df.groupby(timepoint_col)
-    result = {}
-    
-    for timepoint, group_data in grouped:
-        counts = {}
-        for var in variables:
-            counts[var] = group_data[var].notna().sum()
-        result[timepoint] = counts
-    
-    return result
+# Function to filter data and count non-blank records for each timepoint
+def longitudinal_filter(data, timepoints, variables):
+    results = {}
 
-# Main Streamlit app code
+    for tp_name, tp_range in timepoints.items():
+        tp_data = data[(data['days_since_surgery'] >= tp_range[0]) & (data['days_since_surgery'] <= tp_range[1])]
+        counts = {var: tp_data[var].notna().sum() for var in variables}
+        results[tp_name] = counts
+
+    return results
+
+# Main function to run Streamlit app
 def main():
-    st.title("Longitudinal Data Counter")  # Title
-    st.write("This app counts non-blank record counts for variables at each timepoint.")
+    # Streamlit title and subtitle
+    st.title("Longitudinal Data Counter")
+    st.write("This app counts non-blank record counts for variables across different timepoints.")
 
-    # Upload dataset
-    data = pd.read_excel("PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx")
+    # Upload dataset and preprocess
+    data_file = st.file_uploader("Upload your dataset", type=['xlsx'])
+    if data_file is not None:
+        data = pd.read_excel(data_file)
 
-    # Print column names for debugging
-    st.write("Columns in data:", data.columns)
+        # Print column names for debugging
+        st.write("Columns in data:", data.columns)
 
-    # Function to autofill missing values for specified columns
-    data = autofill(data, ['sex_dashboard', 'graft_dashboard2', 'prior_aclr'])
+        # Autofill missing values by record_id
+        data = autofill(data, ['sex_dashboard', 'graft_dashboard2', 'prior_aclr'])
 
-    # Example variables (replace with your actual list of variables)
-    variables = [
-        "insurance_dashboard_use", "ikdc", "pedi_ikdc", "marx", "pedi_fabs", "koos_pain", 
-        "koos_sx", "koos_adl", "koos_sport", "koos_qol", "acl_rsi", "tsk", "rsi_score", 
-        "rsi_emo", "rsi_con", "sh_lsi", "th_lsi", "ch_lsi", "lsi_ext_mvic_90", 
-        "lsi_ext_mvic_60", "lsi_flex_mvic_60", "lsi_ext_isok_60", "lsi_flex_isok_60", 
-        "lsi_ext_isok_90", "lsi_flex_isok_90", "lsi_ext_isok_180", "lsi_flex_isok_180", 
-        "rts", "reinjury"
-    ]
+        # Define variables to count non-blank records
+        variables = [
+            "insurance_dashboard_use", "ikdc", "pedi_ikdc", "marx", "pedi_fabs", "koos_pain",
+            "koos_sx", "koos_adl", "koos_sport", "koos_qol", "acl_rsi", "tsk", "rsi_score",
+            "rsi_emo", "rsi_con", "sh_lsi", "th_lsi", "ch_lsi", "lsi_ext_mvic_90",
+            "lsi_ext_mvic_60", "lsi_flex_mvic_60", "lsi_ext_isok_60", "lsi_flex_isok_60",
+            "lsi_ext_isok_90", "lsi_flex_isok_90", "lsi_ext_isok_180", "lsi_flex_isok_180",
+            "rts", "reinjury"
+        ]
 
-    # Ask for filter criteria (e.g., timepoint column)
-    timepoint_col = st.selectbox("Select timepoint column", options=data.columns)
-    if timepoint_col:
-        # Calculate counts for each variable at each timepoint
-        longitudinal_counts = longitudinal_filter(data, timepoint_col, variables)
+        # Define timepoints
+        timepoints = {
+            '3-4 months': (90, 120),
+            '5-7 months': (150, 210)
+        }
+
+        # Call longitudinal filtering function
+        results = longitudinal_filter(data, timepoints, variables)
 
         # Display results in a table format
-        st.write("Counts of Non-Null Observations for Variables at Each Timepoint:")
-        for timepoint, counts in longitudinal_counts.items():
-            st.subheader(f"Timepoint: {timepoint}")
-            df_counts = pd.DataFrame.from_dict(counts, orient='index', columns=['Count'])
-            st.write(df_counts)
+        st.subheader("Counts of Non-Blank Records for Variables:")
+        results_df = pd.DataFrame(results).transpose()
+        st.write(results_df)
 
-# Run the main function
+# Run the app
 if __name__ == "__main__":
     main()
