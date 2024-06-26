@@ -79,7 +79,7 @@ def main():
     st.write("This app counts non-blank record counts for variables given specified criteria and longitudinal timepoints.")
 
     # Replace with your file path or URL
-    file_path = "path/to/your/PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx"
+    file_path = "PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx"
     
     # Load dataset and preprocess
     data = read_data(file_path)
