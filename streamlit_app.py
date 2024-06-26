@@ -30,7 +30,7 @@ def main():
     st.write("This app counts non-blank record counts for variables across different timepoints.")
 
     # Load dataset and preprocess (replace with your file path)
-    file_path = "path/to/your/PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx"
+    file_path = "PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx"
     data = read_data(file_path)
 
     # Print column names for debugging
