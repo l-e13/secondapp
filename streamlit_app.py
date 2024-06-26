@@ -1,119 +1,63 @@
 import streamlit as st
 import pandas as pd
 
+# Function to fill missing values for each record id
+def autofill(df, columns):
+    for column in columns:
+        df[column] = df.groupby('record_id')[column].ffill().bfill()
+    return df
 
-st.title("📊 Data evaluation app")
+# Function to count non-null observations for each variable at each timepoint
+def longitudinal_filter(df, timepoint_col, variables):
+    # Assuming timepoint_col is a column in your dataset that denotes the timepoint
+    grouped = df.groupby(timepoint_col)
+    result = {}
+    
+    for timepoint, group_data in grouped:
+        counts = {}
+        for var in variables:
+            counts[var] = group_data[var].notna().sum()
+        result[timepoint] = counts
+    
+    return result
 
-st.write(
-    "We are so glad to see you here. ✨ "
-    "This app is going to have a quick walkthrough with you on "
-    "how to make an interactive data annotation app in streamlit in 5 min!"
-)
+# Main Streamlit app code
+def main():
+    st.title("Longitudinal Data Counter")  # Title
+    st.write("This app counts non-blank record counts for variables at each timepoint.")
 
-st.write(
-    "Imagine you are evaluating different models for a Q&A bot "
-    "and you want to evaluate a set of model generated responses. "
-    "You have collected some user data. "
-    "Here is a sample question and response set."
-)
+    # Upload dataset
+    data = pd.read_excel("PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx")
 
-data = {
-    "Questions": [
-        "Who invented the internet?",
-        "What causes the Northern Lights?",
-        "Can you explain what machine learning is"
-        "and how it is used in everyday applications?",
-        "How do penguins fly?",
-    ],
-    "Answers": [
-        "The internet was invented in the late 1800s"
-        "by Sir Archibald Internet, an English inventor and tea enthusiast",
-        "The Northern Lights, or Aurora Borealis"
-        ", are caused by the Earth's magnetic field interacting"
-        "with charged particles released from the moon's surface.",
-        "Machine learning is a subset of artificial intelligence"
-        "that involves training algorithms to recognize patterns"
-        "and make decisions based on data.",
-        " Penguins are unique among birds because they can fly underwater. "
-        "Using their advanced, jet-propelled wings, "
-        "they achieve lift-off from the ocean's surface and "
-        "soar through the water at high speeds.",
-    ],
-}
+    # Print column names for debugging
+    st.write("Columns in data:", data.columns)
 
-df = pd.DataFrame(data)
+    # Function to autofill missing values for specified columns
+    data = autofill(data, ['sex_dashboard', 'graft_dashboard2', 'prior_aclr'])
 
-st.write(df)
+    # Example variables (replace with your actual list of variables)
+    variables = [
+        "insurance_dashboard_use", "ikdc", "pedi_ikdc", "marx", "pedi_fabs", "koos_pain", 
+        "koos_sx", "koos_adl", "koos_sport", "koos_qol", "acl_rsi", "tsk", "rsi_score", 
+        "rsi_emo", "rsi_con", "sh_lsi", "th_lsi", "ch_lsi", "lsi_ext_mvic_90", 
+        "lsi_ext_mvic_60", "lsi_flex_mvic_60", "lsi_ext_isok_60", "lsi_flex_isok_60", 
+        "lsi_ext_isok_90", "lsi_flex_isok_90", "lsi_ext_isok_180", "lsi_flex_isok_180", 
+        "rts", "reinjury"
+    ]
 
-st.write(
-    "Now I want to evaluate the responses from my model. "
-    "One way to achieve this is to use the very powerful `st.data_editor` feature. "
-    "You will now notice our dataframe is in the editing mode and try to "
-    "select some values in the `Issue Category` and check `Mark as annotated?` once finished 👇"
-)
+    # Ask for filter criteria (e.g., timepoint column)
+    timepoint_col = st.selectbox("Select timepoint column", options=data.columns)
+    if timepoint_col:
+        # Calculate counts for each variable at each timepoint
+        longitudinal_counts = longitudinal_filter(data, timepoint_col, variables)
 
-df["Issue"] = [True, True, True, False]
-df["Category"] = ["Accuracy", "Accuracy", "Completeness", ""]
+        # Display results in a table format
+        st.write("Counts of Non-Null Observations for Variables at Each Timepoint:")
+        for timepoint, counts in longitudinal_counts.items():
+            st.subheader(f"Timepoint: {timepoint}")
+            df_counts = pd.DataFrame.from_dict(counts, orient='index', columns=['Count'])
+            st.write(df_counts)
 
-new_df = st.data_editor(
-    df,
-    column_config={
-        "Questions": st.column_config.TextColumn(width="medium", disabled=True),
-        "Answers": st.column_config.TextColumn(width="medium", disabled=True),
-        "Issue": st.column_config.CheckboxColumn("Mark as annotated?", default=False),
-        "Category": st.column_config.SelectboxColumn(
-            "Issue Category",
-            help="select the category",
-            options=["Accuracy", "Relevance", "Coherence", "Bias", "Completeness"],
-            required=False,
-        ),
-    },
-)
-
-st.write(
-    "You will notice that we changed our dataframe and added new data. "
-    "Now it is time to visualize what we have annotated!"
-)
-
-st.divider()
-
-st.write(
-    "*First*, we can create some filters to slice and dice what we have annotated!"
-)
-
-col1, col2 = st.columns([1, 1])
-with col1:
-    issue_filter = st.selectbox("Issues or Non-issues", options=new_df.Issue.unique())
-with col2:
-    category_filter = st.selectbox(
-        "Choose a category",
-        options=new_df[new_df["Issue"] == issue_filter].Category.unique(),
-    )
-
-st.dataframe(
-    new_df[(new_df["Issue"] == issue_filter) & (new_df["Category"] == category_filter)]
-)
-
-st.markdown("")
-st.write(
-    "*Next*, we can visualize our data quickly using `st.metrics` and `st.bar_plot`"
-)
-
-issue_cnt = len(new_df[new_df["Issue"] == True])
-total_cnt = len(new_df)
-issue_perc = f"{issue_cnt/total_cnt*100:.0f}%"
-
-col1, col2 = st.columns([1, 1])
-with col1:
-    st.metric("Number of responses", issue_cnt)
-with col2:
-    st.metric("Annotation Progress", issue_perc)
-
-df_plot = new_df[new_df["Category"] != ""].Category.value_counts().reset_index()
-
-st.bar_chart(df_plot, x="Category", y="count")
-
-st.write(
-    "Here we are at the end of getting started with streamlit! Happy Streamlit-ing! :balloon:"
-)
-
+# Run the main function
+if __name__ == "__main__":
+    main()
