@@ -86,9 +86,7 @@ def main():
     
     if data is None:
         return
-    
-    # Print column names for debugging
-    st.write("Columns in data:", data.columns)
+
 
     # Autofill missing values by record_id
     data = autofill(data, ['sex_dashboard', 'graft_dashboard2', 'prior_aclr'])
