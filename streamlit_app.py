@@ -165,12 +165,11 @@ def main():
         # Call longitudinal filtering function
         longitudinal_results = longitudinal_filter(data=filtered_data, timepoints=timepoints, variables=variables)
 
-        # Display longitudinal filtering results
-        st.write("Counts of Non-Blank Records for Variables (Longitudinal Filtering):")
+        # Display longitudinal filtering results in a table
         for tp, counts in longitudinal_results.items():
             st.write(f"Timepoint: {tp}")
-            for var, count in counts.items():
-                st.write(f"{var}: {count}")
+            df_counts = pd.DataFrame.from_dict(counts, orient='index', columns=['Count'])
+            st.write(df_counts)
 
 # Run the app
 if __name__ == "__main__":
