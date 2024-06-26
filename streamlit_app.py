@@ -3,8 +3,15 @@ import pandas as pd
 
 # Function to read data and fill missing values
 def read_data(file_path):
-    data = pd.read_excel(file_path)
-    return data
+    try:
+        data = pd.read_excel(file_path)
+        return data
+    except FileNotFoundError:
+        st.error(f"File not found at path: {file_path}")
+        return None
+    except Exception as e:
+        st.error(f"Error occurred while reading file: {e}")
+        return None
 
 # Function to autofill missing values by record_id
 def autofill(df, columns):
@@ -17,7 +24,8 @@ def longitudinal_filter(data, timepoints, variables):
     results = {}
 
     for tp_name, tp_range in timepoints.items():
-        tp_data = data[(data['days_since_surgery'] >= tp_range[0]) & (data['days_since_surgery'] <= tp_range[1])]
+        # Filter data for each timepoint range
+        tp_data = data[(data['tss_dashboard'].isin(tp_range))]
         counts = {var: tp_data[var].notna().sum() for var in variables}
         results[tp_name] = counts
 
@@ -29,10 +37,15 @@ def main():
     st.title("Longitudinal Data Counter")
     st.write("This app counts non-blank record counts for variables across different timepoints.")
 
-    # Load dataset and preprocess (replace with your file path)
-    file_path = "PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx"
+    # Replace with your file path or URL
+    file_path = "path/to/your/PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx"
+    
+    # Load dataset and preprocess
     data = read_data(file_path)
-
+    
+    if data is None:
+        return
+    
     # Print column names for debugging
     st.write("Columns in data:", data.columns)
 
@@ -49,10 +62,13 @@ def main():
         "rts", "reinjury"
     ]
 
-    # Define timepoints
+    # Define timepoints based on tss_dashboard groups
     timepoints = {
-        '3-4 months': (90, 120),
-        '5-7 months': (150, 210)
+        '3-4 months': ["3 to 4 months"],
+        '5-7 months': ["5 to 7 months"],
+        '8-12 months': ["8 to 12 months"],
+        '13-24 months': ["13 to 24 months"]
+        # Add more timepoint ranges as needed
     }
 
     # Call longitudinal filtering function
