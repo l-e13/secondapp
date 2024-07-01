@@ -122,9 +122,9 @@ age_range = st.slider("Select age range", min_value=age_min, max_value=age_max, 
 cols['age'] = age_range
 
 # Add tss range slider
-tss_min = float(data['tss'].min())  # Min tss in dataset
-tss_max = float(data['tss'].max())  # Max tss in dataset
-tss_range = st.slider("Select time since surgery range (in months)", min_value=tss_min, max_value=tss_max, value=(tss_min, tss_max), step=0.1)
+tss_min = int(data['tss'].min())  # Min tss in dataset
+tss_max = int(data['tss'].max())  # Max tss in dataset
+tss_range = st.slider("Select time since surgery range (in months)", min_value=tss_min, max_value=tss_max, value=(tss_min, tss_max), step=1)
 cols['tss'] = tss_range
 
 # Call the function 
