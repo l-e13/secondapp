@@ -38,12 +38,6 @@ data = pd.read_excel("PRODRSOMDashboardDat_DATA_2024-06-04_1845.xlsx")
 # Convert 'tss' to numeric, forcing non-numeric values to NaN
 data['tss'] = pd.to_numeric(data['tss'], errors='coerce')
 
-# Map special ranges to "NA" and "Not Reported"
-data['tss'] = data['tss'].apply(lambda x: 'NA' if x < 3 else ('Not Reported' if x > 25 else x))
-
-# Filter out non-numeric values in 'tss' column
-data = data[pd.to_numeric(data['tss'], errors='coerce').notnull()]
-
 # Function to fill missing values for each record id
 def autofill(df, columns):
     for column in columns:
@@ -57,10 +51,8 @@ data = autofill(data, ['sex_dashboard', 'graft_dashboard2', 'prior_aclr'])
 def filter_count(df, cols, variables):
     filtered_df = df.copy()
     for column, values in cols.items():  # Iterates through each filter
-        if column in ['age']:
+        if column in ['age', 'tss']:
             filtered_df = filtered_df[filtered_df[column].between(values[0], values[1])]
-        elif column == 'tss':
-            filtered_df = filtered_df[(filtered_df[column] >= values[0]) & (filtered_df[column] <= values[1])]
         elif values:  # Only apply filter if values are not empty
             filtered_df = filtered_df[filtered_df[column].isin(values)]
 
@@ -78,15 +70,19 @@ variables = [
     "lsi_ext_isok_90", "lsi_flex_isok_90", "lsi_ext_isok_180", "lsi_flex_isok_180", 
     "rts", "reinjury"]
 
-# Define timepoints for each month from 1 to 24
-timepoints = {f"{month} month": (month, month + 1) for month in range(1, 25)}
+# Define timepoints for longitudinal filter in months
+timepoints = {
+    "3-4 months": (3, 4),
+    "5-7 months": (5, 7),
+    "8-12 months": (8, 12)
+}
 
 # Function for longitudinal filter and count
 def longitudinal_filter(data, timepoints, variables):
     longitudinal_counts = {var: {tp: 0 for tp in timepoints} for var in variables}
     
     for tp_label, tp_range in timepoints.items():
-        tp_data = data[(data['tss'] >= tp_range[0]) & (data['tss'] < tp_range[1])]
+        tp_data = data[(data['tss'] >= tp_range[0]) & (data['tss'] <= tp_range[1])]
         for var in variables:
             longitudinal_counts[var][tp_label] = tp_data[var].notna().sum()
     
@@ -126,8 +122,8 @@ age_range = st.slider("Select age range", min_value=age_min, max_value=age_max, 
 cols['age'] = age_range
 
 # Add tss range slider
-tss_min = float(data['tss'][data['tss'].apply(lambda x: isinstance(x, (int, float)))].min())  # Min tss in dataset
-tss_max = float(data['tss'][data['tss'].apply(lambda x: isinstance(x, (int, float)))].max())  # Max tss in dataset
+tss_min = float(data['tss'].min())  # Min tss in dataset
+tss_max = float(data['tss'].max())  # Max tss in dataset
 tss_range = st.slider("Select time since surgery range (in months)", min_value=tss_min, max_value=tss_max, value=(tss_min, tss_max), step=0.1)
 cols['tss'] = tss_range
 
