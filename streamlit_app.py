@@ -41,6 +41,9 @@ data['tss'] = pd.to_numeric(data['tss'], errors='coerce')
 # Map special ranges to "NA" and "Not Reported"
 data['tss'] = data['tss'].apply(lambda x: 'NA' if x < 3 else ('Not Reported' if x > 25 else x))
 
+# Filter out non-numeric values in 'tss' column
+data = data[pd.to_numeric(data['tss'], errors='coerce').notnull()]
+
 # Function to fill missing values for each record id
 def autofill(df, columns):
     for column in columns:
