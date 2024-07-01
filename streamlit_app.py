@@ -74,7 +74,8 @@ variables = [
 timepoints = {
     "3-4 months": (3, 4),
     "5-7 months": (5, 7),
-    "8-12 months": (8, 12)
+    "8-12 months": (8, 12),
+    "13-24 months": (13, 24)
 }
 
 # Function for longitudinal filter and count
